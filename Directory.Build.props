@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+        <DefaultNetCoreTargetFramework>net8.0</DefaultNetCoreTargetFramework>
+        <DefaultLangVersion>12.0</DefaultLangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <WarningsAsErrors>nullable</WarningsAsErrors>
+    </PropertyGroup>
+</Project>
