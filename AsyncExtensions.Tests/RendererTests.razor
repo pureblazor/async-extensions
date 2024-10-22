@@ -1,14 +1,15 @@
 @attribute [TestClass]
 @inherits BunitContext
+
 @code
 {
     [TestMethod]
     public async Task BasicSampleRendersCorrectly()
     {
         var items = GetItemsAsync();
-        
+
         // Act
-        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" />);
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items"/>);
 
         // Assert
         cut.MarkupMatches(@"
@@ -17,51 +18,78 @@
                           <div>Item 3</div>
                           ");
     }
-    
+
+    [TestMethod]
+    public async Task ItemsRenderWhenDelayed()
+    {
+        var items = GetItemsWithDelayAsync(1000);
+
+        // Act
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items"/>);
+
+        // Assert
+        cut.WaitForAssertion(() =>
+        {
+            cut.MarkupMatches(@"
+                          <div>Item 1</div>
+                          <div>Item 2</div>
+                          <div>Item 3</div>
+                          ");
+        }, TimeSpan.FromSeconds(10));
+    }
+
     [TestMethod]
     public async Task CancellationWorks()
     {
         var items = GetItemsWithDelayAsync(10000);
         var cts = new CancellationTokenSource(4000);
-        
+
         // Act
-        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token" />);
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token"/>);
 
         // Assert
         cut.MarkupMatches("");
     }
-    
+
     [TestMethod]
     public async Task CancellationWorksAfterStartRendering()
     {
-        var items = GetItemsWithDelayAsync(3000);
-        var cts = new CancellationTokenSource(9000);
-        
+        var items = GetItemsWithDelayAsync(5000);
+        var cts = new CancellationTokenSource(10000);
+
         // Act
-        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token" />);
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token"/>);
 
         // Assert
-        cut.MarkupMatches("<div>Item 1</div>");
+        cut.WaitForAssertion(() =>
+        {
+            cut.MarkupMatches(@"
+                          <div>Item 1</div>
+                          ");
+        }, TimeSpan.FromSeconds(10));
     }
-    
+
     [TestMethod]
     public async Task CancellationWorksAfterCompleteRendering()
     {
-        var items = GetItemsWithDelayAsync(10);
-        var cts = new CancellationTokenSource(60000);
-        
+        var items = GetItemsWithDelayAsync(1000);
+        var cts = new CancellationTokenSource(10000);
+
         // Act
-        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items"  />);
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token"/>);
 
         // Assert
-        cut.MarkupMatches(@"
+        cut.WaitForAssertion(() =>
+        {
+            cut.MarkupMatches(@"
                           <div>Item 1</div>
                           <div>Item 2</div>
                           <div>Item 3</div>
                           ");
+        }, TimeSpan.FromSeconds(10));
     }
-    
-    
+
+
     private async IAsyncEnumerable<string> GetItemsAsync()
     {
         yield return "Item 1";
@@ -71,11 +99,11 @@
 
     private async IAsyncEnumerable<string> GetItemsWithDelayAsync(int milliseconds)
     {
+        await Task.Delay(milliseconds);
         yield return "Item 1";
         await Task.Delay(milliseconds);
         yield return "Item 2";
         await Task.Delay(milliseconds);
         yield return "Item 3";
-        await Task.Delay(milliseconds);
     }
 }
