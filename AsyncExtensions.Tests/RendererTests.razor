@@ -1,0 +1,81 @@
+@attribute [TestClass]
+@inherits BunitContext
+@code
+{
+    [TestMethod]
+    public async Task BasicSampleRendersCorrectly()
+    {
+        var items = GetItemsAsync();
+        
+        // Act
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" />);
+
+        // Assert
+        cut.MarkupMatches(@"
+                          <div>Item 1</div>
+                          <div>Item 2</div>
+                          <div>Item 3</div>
+                          ");
+    }
+    
+    [TestMethod]
+    public async Task CancellationWorks()
+    {
+        var items = GetItemsWithDelayAsync(10000);
+        var cts = new CancellationTokenSource(4000);
+        
+        // Act
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token" />);
+
+        // Assert
+        cut.MarkupMatches("");
+    }
+    
+    [TestMethod]
+    public async Task CancellationWorksAfterStartRendering()
+    {
+        var items = GetItemsWithDelayAsync(3000);
+        var cts = new CancellationTokenSource(9000);
+        
+        // Act
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items" CancellationToken="cts.Token" />);
+
+        // Assert
+        cut.MarkupMatches("<div>Item 1</div>");
+    }
+    
+    [TestMethod]
+    public async Task CancellationWorksAfterCompleteRendering()
+    {
+        var items = GetItemsWithDelayAsync(10);
+        var cts = new CancellationTokenSource(60000);
+        
+        // Act
+        var cut = Render(@<AsyncRenderer T="string" TOrderKey="string" Items="items"  />);
+
+        // Assert
+        cut.MarkupMatches(@"
+                          <div>Item 1</div>
+                          <div>Item 2</div>
+                          <div>Item 3</div>
+                          ");
+    }
+    
+    
+    private async IAsyncEnumerable<string> GetItemsAsync()
+    {
+        yield return "Item 1";
+        yield return "Item 2";
+        yield return "Item 3";
+    }
+
+    private async IAsyncEnumerable<string> GetItemsWithDelayAsync(int milliseconds)
+    {
+        yield return "Item 1";
+        await Task.Delay(milliseconds);
+        yield return "Item 2";
+        await Task.Delay(milliseconds);
+        yield return "Item 3";
+        await Task.Delay(milliseconds);
+    }
+}

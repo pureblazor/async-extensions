@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncExtensions", "src\AsyncExtensions\AsyncExtensions.csproj", "{64D9C514-91C3-417F-B919-BE97E1CAECA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncExtensions.Tests", "AsyncExtensions.Tests\AsyncExtensions.Tests.csproj", "{26935515-5EC4-4781-BD72-6DE66E0931FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{64D9C514-91C3-417F-B919-BE97E1CAECA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64D9C514-91C3-417F-B919-BE97E1CAECA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64D9C514-91C3-417F-B919-BE97E1CAECA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26935515-5EC4-4781-BD72-6DE66E0931FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26935515-5EC4-4781-BD72-6DE66E0931FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26935515-5EC4-4781-BD72-6DE66E0931FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26935515-5EC4-4781-BD72-6DE66E0931FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

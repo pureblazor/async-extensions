@@ -5,25 +5,55 @@ namespace PureBlazor.AsyncExtensions;
 
 /// <summary>
 /// Renders a list of items asynchronously. Add [StreamRendering(true)] to the component to enable streaming.
-///
+/// 
 /// Optionally provide a template for rendering each item.
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public class AsyncRenderer<T> : ComponentBase, IAsyncDisposable
+/// <typeparam name="T">The type of item</typeparam>
+/// <typeparam name="TOrderKey">The key of the item for ordering</typeparam>
+public class AsyncRenderer<T, TOrderKey> : ComponentBase, IAsyncDisposable
 {
-    private CancellationTokenSource _cts = new();
-    private Task? _streamTask;
-    private List<T> _items = [];
+    private CancellationTokenSource cts = new();
+    private Task? streamTask;
+    private List<T> items = [];
+    private IEnumerable<T> OrderedItems => Ordered();
 
+    /// <summary>
+    /// The items to render.
+    /// </summary>
     [Parameter] public required IAsyncEnumerable<T> Items { get; set; }
+    
+    /// <summary>
+    /// Optional template for rendering each item.
+    /// </summary>
     [Parameter] public RenderFragment<T>? ItemTemplate { get; set; }
+    
+    /// <summary>
+    /// The cancellation token to use when enumerating the items.
+    /// </summary>
     [Parameter] public CancellationToken? CancellationToken { get; set; }
+    
+    /// <summary>
+    /// The element to render for each item. Defaults to 'div'.
+    /// </summary>
+    [Parameter] public string Element { get; set; } = "div";
+
+    /// <summary>
+    /// The OrderBy function to use when ordering the items. Must not be specified with OrderByDescending.
+    /// </summary>
+    [Parameter]
+    public Func<T, TOrderKey>? OrderBy { get; set; }
+
+    /// <summary>
+    /// The OrderByDescending function to use when ordering the items. Must not be specified with OrderBy.
+    /// </summary>
+    [Parameter]
+    public Func<T, TOrderKey>? OrderByDescending { get; set; }
 
     protected override Task OnInitializedAsync()
     {
         if (CancellationToken is not null)
         {
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.Value);
+            cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.Value);
         }
 
         if (ItemTemplate is null)
@@ -32,39 +62,59 @@ public class AsyncRenderer<T> : ComponentBase, IAsyncDisposable
             ItemTemplate = item => (builder) => builder.AddContent(0, item);
         }
 
-        _streamTask = Task.Run(Enumerate);
+        streamTask = Task.Run(() => Enumerate(cts.Token), cts.Token);
         return Task.CompletedTask;
     }
 
-    private async Task Enumerate()
+    private IEnumerable<T> Ordered()
     {
-        _items = [];
-
-        await foreach (var item in Items)
+        if (OrderBy is not null && OrderByDescending is not null)
         {
-            _items.Add(item);
+            throw new InvalidOperationException("Must not specify both OrderBy and OrderByDescending");
+        }
+
+        if (OrderBy is not null)
+        {
+            return items.OrderBy(OrderBy);
+        }
+
+        if (OrderByDescending is not null)
+        {
+            return items.OrderByDescending(OrderByDescending);
+        }
+
+        return items;
+    }
+
+    private async Task Enumerate(CancellationToken ct = default)
+    {
+        items = [];
+
+        await foreach (var item in Items.WithCancellation(ct))
+        {
+            items.Add(item);
             await InvokeAsync(StateHasChanged);
         }
     }
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
-        builder.OpenElement(0, "div");
-        foreach (var item in _items)
+        foreach (var item in OrderedItems)
         {
-            builder.OpenElement(1, "div");
+            builder.OpenElement(0, Element);
 
             // ItemTemplate not null after initializing
-            builder.AddContent(2, ItemTemplate!(item));
+            builder.AddContent(1, ItemTemplate!(item));
             builder.CloseElement();
         }
-        builder.CloseElement();
     }
 
     public ValueTask DisposeAsync()
     {
-        _cts.CancelAsync();
-        _streamTask?.Dispose();
+        cts.CancelAsync();
+        streamTask?.Dispose();
+
+        GC.SuppressFinalize(this);
 
         return ValueTask.CompletedTask;
     }
